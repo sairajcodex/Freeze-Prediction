@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bank Account Freeze Risk Prediction</title>
+    <meta name="description"
+        content="Predict the risk of bank account freeze based on transaction patterns and KYC verification.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* ===================== CSS RESET & VARIABLES ===================== */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg-primary: #0f1117;
+            --bg-secondary: #1a1d27;
+            --bg-card: rgba(26, 29, 39, 0.7);
+            --bg-input: rgba(255, 255, 255, 0.04);
+            --bg-input-focus: rgba(255, 255, 255, 0.08);
+            --border-color: rgba(255, 255, 255, 0.06);
+            --border-focus: rgba(99, 132, 255, 0.5);
+            --text-primary: #e8eaf0;
+            --text-secondary: #8b8fa3;
+            --text-muted: #5a5e72;
+            --accent-blue: #6384ff;
+            --accent-blue-glow: rgba(99, 132, 255, 0.25);
+            --accent-green: #34d399;
+            --accent-green-glow: rgba(52, 211, 153, 0.2);
+            --accent-red: #f87171;
+            --accent-red-glow: rgba(248, 113, 113, 0.2);
+            --accent-amber: #fbbf24;
+            --accent-amber-glow: rgba(251, 191, 36, 0.2);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
+            --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.3), 0 1px 4px rgba(0, 0, 0, 0.2);
+            --shadow-glow: 0 0 40px rgba(99, 132, 255, 0.08);
+            --transition-fast: 0.15s ease;
+            --transition-normal: 0.3s ease;
+            --transition-smooth: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* ===================== BASE ===================== */
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Background ambient effects */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -200px;
+            left: -200px;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(99, 132, 255, 0.06) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            bottom: -200px;
+            right: -200px;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(52, 211, 153, 0.04) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ===================== LAYOUT ===================== */
+        .app-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 24px 60px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ===================== HEADER ===================== */
+        .app-header {
+            text-align: center;
+            margin-bottom: 48px;
+            animation: fadeInDown 0.6s ease forwards;
+        }
+
+        .app-header .brand-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 56px;
+            height: 56px;
+            border-radius: var(--radius-md);
+            background: linear-gradient(135deg, var(--accent-blue), #a78bfa);
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(99, 132, 255, 0.3);
+        }
+
+        .app-header .brand-icon svg {
+            width: 28px;
+            height: 28px;
+            fill: white;
+        }
+
+        .app-header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+        }
+
+        .app-header p {
+            font-size: 15px;
+            color: var(--text-secondary);
+            max-width: 480px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* ===================== MAIN GRID ===================== */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 28px;
+            align-items: start;
+        }
+
+        @media (max-width: 900px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ===================== CARD ===================== */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
+            backdrop-filter: blur(20px);
+            box-shadow: var(--shadow-card);
+            overflow: hidden;
+            animation: fadeInUp 0.6s ease forwards;
+            animation-delay: 0.1s;
+            opacity: 0;
+        }
+
+        .card:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 24px 28px 0;
+        }
+
+        .card-header-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-sm);
+            flex-shrink: 0;
+        }
+
+        .card-header-icon svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .card-header-icon.blue {
+            background: rgba(99, 132, 255, 0.12);
+        }
+
+        .card-header-icon.blue svg {
+            fill: var(--accent-blue);
+        }
+
+        .card-header-icon.green {
+            background: rgba(52, 211, 153, 0.12);
+        }
+
+        .card-header-icon.green svg {
+            fill: var(--accent-green);
+        }
+
+        .card-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .card-header span {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .card-body {
+            padding: 20px 28px 28px;
+        }
+
+        /* ===================== FORM ELEMENTS ===================== */
+        .form-group {
+            margin-bottom: 18px;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            transition: color var(--transition-fast);
+        }
+
+        .form-group:focus-within label {
+            color: var(--accent-blue);
+        }
+
+        .form-group input[type="number"],
+        .form-group input[type="text"] {
+            width: 100%;
+            padding: 11px 14px;
+            font-size: 14px;
+            font-family: inherit;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            outline: none;
+            transition: all var(--transition-fast);
+        }
+
+        .form-group input:focus {
+            background: var(--bg-input-focus);
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px var(--accent-blue-glow);
+        }
+
+        .form-group input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .form-group .input-hint {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+            opacity: 0;
+            transform: translateY(-4px);
+            transition: all var(--transition-fast);
+        }
+
+        .form-group:focus-within .input-hint {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .input-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        /* Divider */
+        .form-divider {
+            border: none;
+            border-top: 1px solid var(--border-color);
+            margin: 24px 0;
+        }
+
+        /* File Upload */
+        .file-upload-zone {
+            position: relative;
+            border: 2px dashed rgba(255, 255, 255, 0.08);
+            border-radius: var(--radius-md);
+            padding: 28px;
+            text-align: center;
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            background: var(--bg-input);
+        }
+
+        .file-upload-zone:hover,
+        .file-upload-zone.dragover {
+            border-color: var(--accent-blue);
+            background: rgba(99, 132, 255, 0.04);
+        }
+
+        .file-upload-zone svg {
+            width: 32px;
+            height: 32px;
+            fill: var(--text-muted);
+            margin-bottom: 10px;
+            transition: fill var(--transition-fast);
+        }
+
+        .file-upload-zone:hover svg {
+            fill: var(--accent-blue);
+        }
+
+        .file-upload-zone p {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .file-upload-zone span {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .file-upload-zone input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .file-preview {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            background: rgba(52, 211, 153, 0.06);
+            border: 1px solid rgba(52, 211, 153, 0.15);
+            border-radius: var(--radius-sm);
+            margin-top: 10px;
+        }
+
+        .file-preview.active {
+            display: flex;
+        }
+
+        .file-preview img {
+            width: 40px;
+            height: 40px;
+            border-radius: 6px;
+            object-fit: cover;
+        }
+
+        .file-preview .file-info {
+            flex: 1;
+        }
+
+        .file-preview .file-info p {
+            font-size: 13px;
+            color: var(--text-primary);
+        }
+
+        .file-preview .file-info span {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .file-preview .remove-file {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .file-preview .remove-file svg {
+            width: 16px;
+            height: 16px;
+            fill: var(--text-muted);
+            transition: fill var(--transition-fast);
+        }
+
+        .file-preview .remove-file:hover svg {
+            fill: var(--accent-red);
+        }
+
+        /* ===================== SUBMIT BUTTON ===================== */
+        .btn-submit {
+            width: 100%;
+            padding: 13px;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: inherit;
+            border: none;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            color: white;
+            background: linear-gradient(135deg, var(--accent-blue), #a78bfa);
+            box-shadow: 0 4px 16px rgba(99, 132, 255, 0.3);
+            transition: all var(--transition-normal);
+            position: relative;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 24px rgba(99, 132, 255, 0.4);
+        }
+
+        .btn-submit:active {
+            transform: translateY(0);
+        }
+
+        .btn-submit.loading {
+            pointer-events: none;
+            opacity: 0.8;
+        }
+
+        .btn-submit .btn-text {
+            transition: opacity var(--transition-fast);
+        }
+
+        .btn-submit.loading .btn-text {
+            opacity: 0;
+        }
+
+        .btn-spinner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity var(--transition-fast);
+        }
+
+        .btn-submit.loading .btn-spinner {
+            opacity: 1;
+            animation: spin 0.7s linear infinite;
+        }
+
+        /* ===================== SIDEBAR ===================== */
+        .sidebar-card {
+            position: sticky;
+            top: 40px;
+        }
+
+        /* Risk gauge */
+        .risk-gauge-container {
+            text-align: center;
+            padding: 20px 0 10px;
+        }
+
+        .risk-gauge {
+            position: relative;
+            width: 180px;
+            height: 100px;
+            margin: 0 auto 16px;
+        }
+
+        .risk-gauge svg {
+            width: 180px;
+            height: 100px;
+        }
+
+        .risk-gauge .score-value {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .risk-gauge .score-value small {
+            font-size: 14px;
+            font-weight: 400;
+            color: var(--text-secondary);
+        }
+
+        .risk-label {
+            font-size: 14px;
+            font-weight: 600;
+            padding: 4px 14px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+
+        .risk-label.low {
+            background: rgba(52, 211, 153, 0.12);
+            color: var(--accent-green);
+        }
+
+        .risk-label.medium {
+            background: rgba(251, 191, 36, 0.12);
+            color: var(--accent-amber);
+        }
+
+        .risk-label.high {
+            background: rgba(248, 113, 113, 0.12);
+            color: var(--accent-red);
+        }
+
+        /* Score detail rows */
+        .score-details {
+            padding: 0 4px;
+        }
+
+        .score-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .score-row:last-child {
+            border-bottom: none;
+        }
+
+        .score-row .label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .score-row .label .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .score-row .value {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .score-row .value.flag-true {
+            color: var(--accent-red);
+        }
+
+        .score-row .value.flag-false {
+            color: var(--accent-green);
+        }
+
+        /* Placeholder state */
+        .sidebar-placeholder {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .sidebar-placeholder svg {
+            width: 48px;
+            height: 48px;
+            fill: var(--text-muted);
+            margin-bottom: 14px;
+            opacity: 0.5;
+        }
+
+        .sidebar-placeholder h3 {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .sidebar-placeholder p {
+            font-size: 13px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        /* ===================== FOOTER NOTE ===================== */
+        .footer-note {
+            text-align: center;
+            margin-top: 36px;
+            font-size: 12px;
+            color: var(--text-muted);
+            animation: fadeInUp 0.6s ease forwards;
+            animation-delay: 0.4s;
+            opacity: 0;
+        }
+
+        .footer-note svg {
+            width: 12px;
+            height: 12px;
+            fill: var(--text-muted);
+            vertical-align: -1px;
+            margin-right: 4px;
+        }
+
+        /* ===================== TOOLTIP ===================== */
+        .tooltip-trigger {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.06);
+            cursor: help;
+            margin-left: 6px;
+            position: relative;
+            vertical-align: middle;
+        }
+
+        .tooltip-trigger svg {
+            width: 10px;
+            height: 10px;
+            fill: var(--text-muted);
+        }
+
+        .tooltip-trigger .tooltip-text {
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%) scale(0.95);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 8px 12px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            transition: all var(--transition-fast);
+            box-shadow: var(--shadow-card);
+            z-index: 10;
+        }
+
+        .tooltip-trigger:hover .tooltip-text {
+            opacity: 1;
+            transform: translateX(-50%) scale(1);
+        }
+
+        /* ===================== STATUS BAR ===================== */
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: rgba(52, 211, 153, 0.06);
+            border: 1px solid rgba(52, 211, 153, 0.12);
+            border-radius: var(--radius-sm);
+            margin-bottom: 18px;
+            font-size: 12px;
+            color: var(--accent-green);
+            display: none;
+        }
+
+        .status-bar.active {
+            display: flex;
+        }
+
+        .status-bar .pulse-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            animation: pulse 2s ease infinite;
+        }
+
+        /* ===================== ANIMATIONS ===================== */
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-16px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(16px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes spin {
+            to {
+                transform: translate(-50%, -50%) rotate(360deg);
+            }
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
+        }
+
+        @keyframes scoreReveal {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        /* ===================== VALIDATION STATES ===================== */
+        .form-group.valid input {
+            border-color: rgba(52, 211, 153, 0.3);
+        }
+
+        .form-group.invalid input {
+            border-color: rgba(248, 113, 113, 0.3);
+        }
+
+        .form-group .validation-icon {
+            position: absolute;
+            right: 12px;
+            top: 33px;
+            width: 16px;
+            height: 16px;
+            opacity: 0;
+            transition: opacity var(--transition-fast);
+        }
+
+        .form-group.valid .validation-icon.check {
+            opacity: 1;
+        }
+
+        .form-group.invalid .validation-icon.error {
+            opacity: 1;
+        }
+
+        /* ===================== RESPONSIVE ===================== */
+        @media (max-width: 600px) {
+            .app-container {
+                padding: 24px 16px;
+            }
+
+            .app-header h1 {
+                font-size: 22px;
+            }
+
+            .input-row {
+                grid-template-columns: 1fr;
+            }
+
+            .card-body {
+                padding: 16px 20px 24px;
+            }
+
+            .card-header {
+                padding: 20px 20px 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+
+        <!-- ===== HEADER ===== -->
+        <header class="app-header">
+            <div class="brand-icon">
+                <svg viewBox="0 0 24 24">
+                    <path
+                        d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 2.18l7 3.12v4.7c0 4.83-3.4 9.36-7 10.52-3.6-1.16-7-5.69-7-10.52V6.3l7-3.12z" />
+                    <path d="M11 7h2v6h-2zm0 8h2v2h-2z" />
+                </svg>
+            </div>
+            <h1>Bank Account Freeze Risk</h1>
+            <p>Analyze transaction patterns and KYC verification to predict the risk of an account freeze.</p>
+        </header>
+
+        <!-- ===== MAIN CONTENT ===== -->
+        <form id="riskForm">
+            <div class="main-grid">
+
+                <!-- ===== LEFT: INPUT FORM ===== -->
+                <div class="card" id="formCard">
+                    <div class="card-header">
+                        <div class="card-header-icon blue">
+                            <svg viewBox="0 0 24 24">
+                                <path
+                                    d="M19 14V6c0-1.1-.9-2-2-2H3c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zm-9-1c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm13-6v11c0 1.1-.9 2-2 2H4v-2h17V7h2z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h2>Transaction Details</h2>
+                            <span>Enter the transaction features for analysis</span>
+                        </div>
+                    </div>
+
+                    <div class="card-body">
+
+                        <div class="status-bar" id="statusBar">
+                            <div class="pulse-dot"></div>
+                            <span>Model ready — all systems operational</span>
+                        </div>
+
+                        <div class="input-row">
+                            <div class="form-group">
+                                <label for="transaction_amount">Transaction Amount (₹)
+                                    <span class="tooltip-trigger">
+                                        <svg viewBox="0 0 24 24">
+                                            <path
+                                                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+                                        </svg>
+                                        <span class="tooltip-text">Total amount of the transaction</span>
+                                    </span>
+                                </label>
+                                <input type="number" step="any" name="transaction_amount" id="transaction_amount"
+                                    placeholder="e.g. 50000" required>
+                                <div class="input-hint">Enter the exact transaction amount</div>
+                                <svg class="validation-icon check" viewBox="0 0 24 24" fill="#34d399">
+                                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                                </svg>
+                                <svg class="validation-icon error" viewBox="0 0 24 24" fill="#f87171">
+                                    <path
+                                        d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z" />
+                                </svg>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="income">Monthly Income (₹)</label>
+                                <input type="number" step="any" name="income" id="income" placeholder="e.g. 80000"
+                                    required>
+                                <div class="input-hint">Gross monthly income of the account holder</div>
+                                <svg class="validation-icon check" viewBox="0 0 24 24" fill="#34d399">
+                                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                                </svg>
+                                <svg class="validation-icon error" viewBox="0 0 24 24" fill="#f87171">
+                                    <path
+                                        d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z" />
+                                </svg>
+                            </div>
+                        </div>
+
+                        <div class="input-row">
+                            <div class="form-group">
+                                <label for="txn_income_ratio">Txn / Income Ratio
+                                    <span class="tooltip-trigger">
+                                        <svg viewBox="0 0 24 24">
+                                            <path
+                                                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+                                        </svg>
+                                        <span class="tooltip-text">Auto-calculated: Amount ÷ Income</span>
+                                    </span>
+                                </label>
+                                <input type="number" step="any" name="txn_income_ratio" id="txn_income_ratio"
+                                    placeholder="Auto-calculated" required>
+                                <div class="input-hint">Transaction Amount ÷ Monthly Income</div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="amount_user_mean_ratio">Amt / User Mean Ratio</label>
+                                <input type="number" step="any" name="amount_user_mean_ratio"
+                                    id="amount_user_mean_ratio" placeholder="e.g. 2.5" required>
+                                <div class="input-hint">Current txn amount ÷ user's historical avg</div>
+                            </div>
+                        </div>
+
+                        <div class="input-row">
+                            <div class="form-group">
+                                <label for="rolling_5_txn_amount_std">Rolling 5-Txn Std Dev</label>
+                                <input type="number" step="any" name="rolling_5_txn_amount_std"
+                                    id="rolling_5_txn_amount_std" placeholder="e.g. 15000" required>
+                                <div class="input-hint">Std deviation of last 5 transactions</div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="txn_count_last_10_min">Txn Count (10 min)
+                                    <span class="tooltip-trigger">
+                                        <svg viewBox="0 0 24 24">
+                                            <path
+                                                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+                                        </svg>
+                                        <span class="tooltip-text">Number of txns in last 10 minutes</span>
+                                    </span>
+                                </label>
+                                <input type="number" name="txn_count_last_10_min" id="txn_count_last_10_min"
+                                    placeholder="e.g. 3" required>
+                                <div class="input-hint">Higher count may indicate suspicious activity</div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="night_txn_ratio_7day">Night Transaction Ratio (7-day)</label>
+                            <input type="number" step="any" name="night_txn_ratio_7day" id="night_txn_ratio_7day"
+                                placeholder="e.g. 0.35" required>
+                            <div class="input-hint">Proportion of night-time txns over last 7 days (0 to 1)</div>
+                        </div>
+
+                        <hr class="form-divider">
+
+                        <!-- KYC Section -->
+                        <div class="card-header" style="padding: 0; margin-bottom: 18px;">
+                            <div class="card-header-icon green">
+                                <svg viewBox="0 0 24 24">
+                                    <path
+                                        d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h2>KYC Verification</h2>
+                                <span>Identity document validation</span>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="registered_name">Registered Account Name</label>
+                            <input type="text" name="registered_name" id="registered_name"
+                                placeholder="e.g. Rajesh Kumar" required>
+                            <div class="input-hint">Name as registered with the bank</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Upload KYC Document</label>
+                            <div class="file-upload-zone" id="uploadZone">
+                                <svg viewBox="0 0 24 24">
+                                    <path
+                                        d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z" />
+                                </svg>
+                                <p>Drop your KYC document here</p>
+                                <span>PNG, JPG, or PDF — Max 5MB</span>
+                                <input type="file" name="kyc_image" id="kyc_image" accept="image/*" required>
+                            </div>
+                            <div class="file-preview" id="filePreview">
+                                <img id="fileThumb" src="" alt="Preview">
+                                <div class="file-info">
+                                    <p id="fileName">document.png</p>
+                                    <span id="fileSize">0 KB</span>
+                                </div>
+                                <button type="button" class="remove-file" id="removeFile">
+                                    <svg viewBox="0 0 24 24">
+                                        <path
+                                            d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn-submit" id="submitBtn">
+                            <span class="btn-text">🔍 Analyze Freeze Risk</span>
+                            <div class="btn-spinner"></div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ===== RIGHT: RESULTS SIDEBAR ===== -->
+                <div class="card sidebar-card" id="resultsCard">
+                    <div class="card-header">
+                        <div class="card-header-icon blue">
+                            <svg viewBox="0 0 24 24">
+                                <path
+                                    d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h2>Risk Analysis</h2>
+                            <span>Prediction results</span>
+                        </div>
+                    </div>
+
+                    <div class="card-body">
+                        <!-- PLACEHOLDER VIEW -->
+                        <div class="sidebar-placeholder" id="placeholderView">
+                            <svg viewBox="0 0 24 24">
+                                <path
+                                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                            </svg>
+                            <h3>No Analysis Yet</h3>
+                            <p>Fill in the transaction details and upload a KYC document to generate a freeze risk
+                                assessment.</p>
+                        </div>
+                        <!-- RESULTS VIEW -->
+                        <div id="resultsView" style="display: none;">
+                            <div class="risk-gauge-container" style="animation: scoreReveal 0.5s ease forwards;">
+                                <div class="risk-gauge">
+                                    <svg viewBox="0 0 180 100">
+                                        <defs>
+                                            <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                                <stop offset="0%" stop-color="#34d399" />
+                                                <stop offset="50%" stop-color="#fbbf24" />
+                                                <stop offset="100%" stop-color="#f87171" />
+                                            </linearGradient>
+                                        </defs>
+                                        <!-- Track -->
+                                        <path d="M20 90 A70 70 0 0 1 160 90" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="10" stroke-linecap="round" />
+                                        <!-- Value arc -->
+                                        <path id="gaugeArc" d="M20 90 A70 70 0 0 1 160 90" fill="none" stroke="url(#gaugeGrad)" stroke-width="10" stroke-linecap="round" stroke-dasharray="220" stroke-dashoffset="220" />
+                                    </svg>
+                                    <div class="score-value">
+                                        <span id="scoreText">0</span><small>%</small>
+                                    </div>
+                                </div>
+                                <span id="riskLabel" class="risk-label"></span>
+                            </div>
+
+                            <div class="score-details" style="animation: scoreReveal 0.5s ease 0.15s forwards; opacity: 0;">
+                                <div class="score-row">
+                                    <span class="label"><span class="dot" style="background: var(--accent-blue);"></span>Transaction Risk</span>
+                                    <span class="value" id="txnRiskVal">0%</span>
+                                </div>
+                                <div class="score-row">
+                                    <span class="label"><span class="dot" style="background: var(--accent-amber);"></span>KYC Risk</span>
+                                    <span class="value" id="kycRiskVal">0%</span>
+                                </div>
+                                <div class="score-row">
+                                    <span class="label"><span class="dot" style="background: var(--accent-red);"></span>Name Mismatch</span>
+                                    <span class="value" id="nameMismatchVal">No</span>
+                                </div>
+                                <div class="score-row">
+                                    <span class="label"><span class="dot" style="background: var(--accent-amber);"></span>Invalid ID Format</span>
+                                    <span class="value" id="invalidIdVal">No</span>
+                                </div>
+                                <div class="score-row">
+                                    <span class="label"><span class="dot" style="background: var(--accent-green);"></span>OCR Confidence</span>
+                                    <span class="value" id="ocrConfVal">0%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </form>
+
+        <!-- ===== FOOTER ===== -->
+        <p class="footer-note">
+            <svg viewBox="0 0 24 24">
+                <path
+                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+            </svg>
+            This interface is for demonstration purposes only. Final decisions are policy-driven and subject to
+            regulatory review.
+        </p>
+    </div>
+
+    <!-- ===================== JAVASCRIPT ===================== -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // Show status bar
+            const statusBar = document.getElementById('statusBar');
+            setTimeout(() => statusBar.classList.add('active'), 800);
+
+            // ===== Auto-calculate Txn/Income Ratio =====
+            const amountInput = document.getElementById('transaction_amount');
+            const incomeInput = document.getElementById('income');
+            const ratioInput = document.getElementById('txn_income_ratio');
+
+            function updateRatio() {
+                const amt = parseFloat(amountInput.value);
+                const inc = parseFloat(incomeInput.value);
+                if (!isNaN(amt) && !isNaN(inc) && inc > 0) {
+                    ratioInput.value = (amt / inc).toFixed(4);
+                    ratioInput.dispatchEvent(new Event('input'));
+                }
+            }
+
+            amountInput.addEventListener('input', updateRatio);
+            incomeInput.addEventListener('input', updateRatio);
+
+            // ===== Input Validation Visual Feedback =====
+            const numericInputs = document.querySelectorAll('input[type="number"]');
+            numericInputs.forEach(input => {
+                input.addEventListener('input', () => {
+                    const group = input.closest('.form-group');
+                    if (input.value !== '' && !isNaN(parseFloat(input.value))) {
+                        group.classList.remove('invalid');
+                        group.classList.add('valid');
+                    } else if (input.value !== '') {
+                        group.classList.remove('valid');
+                        group.classList.add('invalid');
+                    } else {
+                        group.classList.remove('valid', 'invalid');
+                    }
+                });
+            });
+
+            const textInputs = document.querySelectorAll('input[type="text"]');
+            textInputs.forEach(input => {
+                input.addEventListener('input', () => {
+                    const group = input.closest('.form-group');
+                    if (input.value.trim().length >= 2) {
+                        group.classList.remove('invalid');
+                        group.classList.add('valid');
+                    } else {
+                        group.classList.remove('valid', 'invalid');
+                    }
+                });
+            });
+
+            // ===== File Upload =====
+            const uploadZone = document.getElementById('uploadZone');
+            const fileInput = document.getElementById('kyc_image');
+            const filePreview = document.getElementById('filePreview');
+            const fileThumb = document.getElementById('fileThumb');
+            const fileName = document.getElementById('fileName');
+            const fileSize = document.getElementById('fileSize');
+            const removeFile = document.getElementById('removeFile');
+
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    showFilePreview(file);
+                }
+            });
+
+            // Drag & drop
+            uploadZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadZone.classList.add('dragover');
+            });
+
+            uploadZone.addEventListener('dragleave', () => {
+                uploadZone.classList.remove('dragover');
+            });
+
+            uploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadZone.classList.remove('dragover');
+                const file = e.dataTransfer.files[0];
+                if (file && file.type.startsWith('image/')) {
+                    const dt = new DataTransfer();
+                    dt.items.add(file);
+                    fileInput.files = dt.files;
+                    showFilePreview(file);
+                }
+            });
+
+            function showFilePreview(file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    fileThumb.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+                fileName.textContent = file.name;
+                fileSize.textContent = (file.size / 1024).toFixed(1) + ' KB';
+                filePreview.classList.add('active');
+                uploadZone.style.display = 'none';
+            }
+
+            removeFile.addEventListener('click', () => {
+                fileInput.value = '';
+                filePreview.classList.remove('active');
+                uploadZone.style.display = '';
+            });
+
+            // ===== Form Submit with Loading State =====
+            const form = document.getElementById('riskForm');
+            const submitBtn = document.getElementById('submitBtn');
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                submitBtn.classList.add('loading');
+                
+                try {
+                    const formData = new FormData(form);
+                    // Use relative path since it's same origin locally, but on Render, 
+                    // Use relative path so it works everywhere (Local, Render, etc.)
+                    const backendUrl = '/predict_ui';
+                    const response = await fetch(backendUrl, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const result = await response.json();
+                    
+                    document.getElementById('placeholderView').style.display = 'none';
+                    document.getElementById('resultsView').style.display = 'block';
+                    
+                    const freezeRisk = result.freeze_risk_score;
+                    document.getElementById('scoreText').innerText = (freezeRisk * 100).toFixed(1);
+                    document.getElementById('gaugeArc').style.strokeDashoffset = 220 - (freezeRisk * 220);
+                    
+                    const riskLabel = document.getElementById('riskLabel');
+                    if (freezeRisk < 0.3) {
+                        riskLabel.className = 'risk-label low';
+                        riskLabel.innerText = 'Low Risk';
+                    } else if (freezeRisk < 0.7) {
+                        riskLabel.className = 'risk-label medium';
+                        riskLabel.innerText = 'Medium Risk';
+                    } else {
+                        riskLabel.className = 'risk-label high';
+                        riskLabel.innerText = 'High Risk';
+                    }
+                    
+                    document.getElementById('txnRiskVal').innerText = (result.transaction_risk_score * 100).toFixed(1) + '%';
+                    document.getElementById('kycRiskVal').innerText = (result.kyc_risk_score * 100).toFixed(1) + '%';
+                    
+                    const nameVal = document.getElementById('nameMismatchVal');
+                    nameVal.innerText = result.name_mismatch_flag ? 'Yes' : 'No';
+                    nameVal.className = 'value ' + (result.name_mismatch_flag ? 'flag-true' : 'flag-false');
+                    
+                    const idVal = document.getElementById('invalidIdVal');
+                    idVal.innerText = result.invalid_id_format_flag ? 'Yes' : 'No';
+                    idVal.className = 'value ' + (result.invalid_id_format_flag ? 'flag-true' : 'flag-false');
+                    
+                    document.getElementById('ocrConfVal').innerText = (result.ocr_confidence * 100).toFixed(1) + '%';
+                    
+                } catch (err) {
+                    console.error(err);
+                    alert("Error communicating with backend.");
+                } finally {
+                    submitBtn.classList.remove('loading');
+                }
+            });
+
+            // ===== Smooth number input scroll prevention =====
+            document.querySelectorAll('input[type="number"]').forEach(input => {
+                input.addEventListener('wheel', (e) => e.preventDefault(), { passive: false });
+            });
+        });
+    </script>
+</body>
+
+</html>
